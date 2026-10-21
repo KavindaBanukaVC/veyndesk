@@ -19,8 +19,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-const CLOUDFLARED_URL: &str =
-    "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe";
 const NTFY: &str = "https://ntfy.sh";
 const REPUBLISH_EVERY: Duration = Duration::from_secs(3 * 3600); // ntfy.sh keeps messages 12 h
 
@@ -108,16 +106,35 @@ fn tunnel_url(line: &str) -> Option<String> {
 
 // ------------------------------------------------------------------ tunnel
 
+const BIN: &str = if cfg!(windows) { "cloudflared.exe" } else { "cloudflared" };
+
+/// Official cloudflared release asset for this OS / CPU. macOS ships as a .tgz.
+fn cloudflared_asset() -> Result<&'static str, String> {
+    let arm = cfg!(target_arch = "aarch64");
+    Ok(match std::env::consts::OS {
+        "windows" => "cloudflared-windows-amd64.exe",
+        "linux" if arm => "cloudflared-linux-arm64",
+        "linux" => "cloudflared-linux-amd64",
+        "macos" if arm => "cloudflared-darwin-arm64.tgz",
+        "macos" => "cloudflared-darwin-amd64.tgz",
+        os => return Err(format!("relay not available on {os}")),
+    })
+}
+
 fn cloudflared_path() -> PathBuf {
-    velodesk_host::config::config_path()
-        .parent()
-        .map(|p| p.join("cloudflared.exe"))
-        .unwrap_or_else(|| "cloudflared.exe".into())
+    velodesk_host::config::config_path().parent().map(|p| p.join(BIN)).unwrap_or_else(|| BIN.into())
 }
 
 fn ensure_cloudflared(me: &Internet) -> Result<PathBuf, String> {
-    // Prefer a copy next to Veyndesk.exe (portable / bundled), then the downloaded one.
-    if let Some(p) = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join("cloudflared.exe"))) {
+    // Prefer a copy next to the app (portable / bundled), then one on PATH (Linux packages), then ours.
+    if let Some(p) = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join(BIN))) {
+        if p.exists() {
+            return Ok(p);
+        }
+    }
+    #[cfg(unix)]
+    for dir in ["/usr/local/bin", "/usr/bin", "/opt/homebrew/bin"] {
+        let p = std::path::Path::new(dir).join(BIN);
         if p.exists() {
             return Ok(p);
         }
@@ -127,20 +144,42 @@ fn ensure_cloudflared(me: &Internet) -> Result<PathBuf, String> {
         return Ok(path);
     }
     *me.state.lock().unwrap() = NetState::Downloading;
+    let asset = cloudflared_asset()?;
     let resp = ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(600))
         .build()
-        .get(CLOUDFLARED_URL)
+        .get(&format!("https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}"))
         .call()
         .map_err(|e| format!("download of cloudflared failed: {e}"))?;
-    let tmp = path.with_extension("download");
     if let Some(d) = path.parent() {
         let _ = std::fs::create_dir_all(d);
     }
-    let mut f = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
-    std::io::copy(&mut resp.into_reader(), &mut f).map_err(|e| format!("download interrupted: {e}"))?;
-    f.flush().ok();
-    drop(f);
+    let tmp = path.with_extension("download");
+    if asset.ends_with(".tgz") {
+        // macOS: the archive contains a single `cloudflared` binary.
+        let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(resp.into_reader()));
+        let mut found = false;
+        for entry in archive.entries().map_err(|e| e.to_string())? {
+            let mut entry = entry.map_err(|e| e.to_string())?;
+            if entry.path().map(|p| p.file_name() == Some(std::ffi::OsStr::new("cloudflared"))).unwrap_or(false) {
+                entry.unpack(&tmp).map_err(|e| e.to_string())?;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            return Err("cloudflared archive did not contain the binary".into());
+        }
+    } else {
+        let mut f = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
+        std::io::copy(&mut resp.into_reader(), &mut f).map_err(|e| format!("download interrupted: {e}"))?;
+        f.flush().ok();
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755));
+    }
     std::fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
     Ok(path)
 }

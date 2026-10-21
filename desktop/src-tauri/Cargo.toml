@@ -1,6 +1,6 @@
 [package]
 name = "velodesk-desktop"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 license = "AGPL-3.0-or-later"
 description = "VeloDesk desktop app (host + viewer)"
@@ -20,6 +20,8 @@ velodesk-host = { path = "../../crates/host" }
 velodesk-protocol = { path = "../../crates/protocol" }
 velodesk-server = { path = "../../crates/server" }
 ureq = "2"
+tar = "0.4.46"
+flate2 = "1.1.10"
 
 [profile.release]
 lto = "thin"

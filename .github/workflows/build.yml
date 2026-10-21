@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Attach the build to this existing release tag (e.g. v0.4.0). Leave empty to only build."
+        description: "Attach the build to this existing release tag (e.g. v0.5.0). Leave empty to only build."
         required: false
         default: ""
 
@@ -44,14 +44,71 @@ jobs:
           name: veyndesk-windows-x64
           path: dist/*
 
+  linux:
+    runs-on: ubuntu-22.04 # older glibc = runs on more distributions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            libxdo-dev libxcb1-dev libxrandr-dev libdbus-1-dev libpipewire-0.3-dev libwayland-dev \
+            libegl-dev libgbm-dev libclang-dev file
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            desktop/src-tauri -> target
+      - name: Test
+        run: cargo test --workspace
+      - name: Build Veyndesk .deb + AppImage
+        working-directory: desktop
+        run: npx --yes @tauri-apps/cli@2 build --bundles deb,appimage
+      - name: Collect files
+        run: |
+          mkdir dist
+          cp desktop/src-tauri/target/release/bundle/deb/*.deb dist/
+          cp desktop/src-tauri/target/release/bundle/appimage/*.AppImage dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veyndesk-linux-x64
+          path: dist/*
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            desktop/src-tauri -> target
+      - name: Test
+        run: cargo test --workspace
+      - name: Build Veyndesk .dmg (Apple Silicon + Intel)
+        working-directory: desktop
+        run: npx --yes @tauri-apps/cli@2 build --target universal-apple-darwin --bundles dmg
+      - name: Collect files
+        run: |
+          mkdir dist
+          cp desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veyndesk-macos-universal
+          path: dist/*
+
   release:
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.tag != ''
-    needs: [windows]
+    needs: [windows, linux, macos]
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: veyndesk-windows-x64, path: dist }
+        with: { path: dist, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}

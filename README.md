@@ -1,17 +1,24 @@
 # Veyndesk
 
-**Open-source remote desktop for Windows, like AnyDesk.** Open the app, share your ID and password,
+**Open-source remote desktop for Windows, macOS and Linux, like AnyDesk.** Open the app, share your ID and password,
 and your partner can see and control your screen. It works on any Wi-Fi or mobile data, and there
 is nothing to set up.
 
 ## Download
 
-Get the latest installer from **[Releases](../../releases)**:
+Get the latest version from **[Releases](../../releases/latest)**:
 
-- `Veyndesk_x.y.z_x64-setup.exe` is the installer.
-- `Veyndesk-windows-portable.zip` runs without installing.
+| Platform | File |
+|---|---|
+| **Windows 10 / 11** | `Veyndesk_x.y.z_x64-setup.exe` (installer) or `Veyndesk-windows-portable.zip` |
+| **macOS 10.15+** (Apple Silicon and Intel) | `Veyndesk_x.y.z_universal.dmg` |
+| **Linux** (Ubuntu, Debian, Mint…) | `veyndesk_x.y.z_amd64.deb` |
+| **Linux** (any distribution) | `Veyndesk_x.y.z_amd64.AppImage` |
 
-Requires Windows 10/11 (WebView2 is built in).
+**macOS first run:** the app isn't notarized yet, so right-click Veyndesk → **Open** → **Open**. Then allow it in
+System Settings → Privacy & Security → **Screen Recording** and **Accessibility**, so others can see and control your Mac.
+
+**Linux:** works on X11 sessions (on Ubuntu, choose "Ubuntu on Xorg" at the login screen). Wayland support is planned.
 
 ## How to use
 

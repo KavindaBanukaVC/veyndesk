@@ -45,6 +45,8 @@ pub struct Shared {
     /// Top-left of the captured monitor in virtual-desktop coordinates.
     pub origin: Mutex<(i32, i32)>,
     pub size: Mutex<(u32, u32)>,
+    /// Captured pixels per input-coordinate unit (2.0 on a Retina Mac, 1.0 elsewhere).
+    pub scale: Mutex<f32>,
     pub monitors: Mutex<Vec<MonitorInfo>>,
     pub active_monitor: Mutex<u32>,
 }
@@ -54,6 +56,8 @@ pub struct Frame {
     pub height: usize,
     pub rgba: Vec<u8>,
     pub origin: (i32, i32),
+    /// Image pixels per OS input coordinate (macOS reports monitors in points).
+    pub scale: f32,
 }
 
 /// Not required to be `Send`: on Windows the capture handles (HMONITOR) are thread-bound,
@@ -121,7 +125,9 @@ impl FrameSource for XcapSource {
             }
         };
         let (w, h) = (img.width() as usize, img.height() as usize);
-        Ok(Frame { width: w, height: h, rgba: img.into_raw(), origin })
+        let logical_w = m.width().unwrap_or(w as u32).max(1);
+        let scale = if cfg!(target_os = "macos") { w as f32 / logical_w as f32 } else { 1.0 };
+        Ok(Frame { width: w, height: h, rgba: img.into_raw(), origin, scale })
     }
 }
 
@@ -167,7 +173,7 @@ impl FrameSource for TestPattern {
                 rgba[i..i + 3].copy_from_slice(&[255, 255, 255]);
             }
         }
-        Ok(Frame { width: w, height: h, rgba, origin: (0, 0) })
+        Ok(Frame { width: w, height: h, rgba, origin: (0, 0), scale: 1.0 })
     }
 }
 
@@ -433,6 +439,7 @@ fn video_loop(source: &mut dyn FrameSource, rx: mpsc::Receiver<VideoCmd>, out: U
             *shared.size.lock().unwrap() = (frame.width as u32, frame.height as u32);
         }
         *shared.origin.lock().unwrap() = frame.origin;
+        *shared.scale.lock().unwrap() = if frame.scale > 0.0 { frame.scale } else { 1.0 };
 
         let changed = match &prev {
             Some(p) => changed_tiles(&grid, &p.rgba, &frame.rgba),

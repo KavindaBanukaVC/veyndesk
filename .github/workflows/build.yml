@@ -45,7 +45,7 @@ jobs:
           path: dist/*
 
   linux:
-    runs-on: ubuntu-22.04 # older glibc = runs on more distributions
+    runs-on: ubuntu-24.04 # PipeWire headers new enough for screen capture (xcap)
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

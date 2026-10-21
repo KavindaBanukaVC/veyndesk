@@ -6,7 +6,7 @@ relay when it doesn't, so there is no server or port forwarding to set up.
 
 ## Download
 
-Get the latest version from **[Releases](../../releases/latest)**:
+Get the latest version from **[Releases](../../releases/latest)** · Website and guides: **[veyndesk.github.io](https://veyndesk.github.io)**
 
 | Platform | File |
 |---|---|
@@ -33,7 +33,9 @@ For unattended access, set a permanent password in **Settings**. Sessions that u
 
 - **Direct connection (P2P):** connects PC-to-PC using WebRTC.
 - **Automatic relay:** used when the network blocks direct connections.
-- **Encrypted end to end:** DTLS encryption. The password is never sent; a challenge–response check proves it.
+- **Encryption:** direct (P2P) connections are end-to-end encrypted (DTLS). Relay connections use HTTPS through
+  Cloudflare, so they are encrypted in transit but **not** end-to-end. Connections by IP address on a local network are
+  not encrypted yet. The password is never sent; a challenge–response check proves it. Details: [Security](https://veyndesk.github.io/security/).
 - **Accept / Deny prompt:** asks before anyone sees your screen with the one-time password. If you set a permanent
   password for unattended access, sessions using it start **without** a prompt. Wrong-password lockout.
 - **Screen sharing:** adaptive quality, sharp text, multi-monitor.
@@ -77,7 +79,7 @@ it uses these services:
 |---|---|---|
 | **ntfy.sh** (public message service) | Finding your partner by ID | A one-time connection offer (network addresses, encryption fingerprint) on a topic derived from the ID |
 | **Google / Cloudflare STUN servers** | Opening a direct connection | Standard STUN requests (your public IP address) |
-| **Cloudflare quick tunnel** (`cloudflared`, downloaded on first start) | Relay when a direct connection is impossible | Encrypted session traffic, only during a session that falls back to the relay |
+| **Cloudflare quick tunnel** (`cloudflared`, downloaded on first start) | Relay when a direct connection is impossible | Session traffic of relayed sessions only (HTTPS to Cloudflare, not end-to-end) |
 
 Screen content and keystrokes go only to the partner you connected with. Settings (your ID, password hash and
 options) are stored only on your computer:

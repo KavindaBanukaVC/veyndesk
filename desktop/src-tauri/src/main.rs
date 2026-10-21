@@ -13,7 +13,7 @@ use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
-use velodesk_host::{
+use veyndesk_host::{
     config::{config_path, one_time_password, Credentials, HostConfig},
     AuthConfig, HostCommand, UiEvent,
 };
@@ -105,7 +105,7 @@ fn start_embedded_server(server_state: &Arc<Mutex<ServerState>>) -> ServerState 
             let st = server_state.clone();
             tauri::async_runtime::spawn(async move {
                 let result = match tokio::net::TcpListener::from_std(listener) {
-                    Ok(l) => velodesk_server::serve_on(l, data).await,
+                    Ok(l) => veyndesk_server::serve_on(l, data).await,
                     Err(e) => Err(e.into()),
                 };
                 if let Err(e) = result {
@@ -318,7 +318,7 @@ async fn open_viewer(app: tauri::AppHandle, state: State<'_, AppState>, id: Stri
     let p2p = !raw.contains('.');
     let server = if server.is_empty() { String::new() } else { http_base(&server) };
     let init = format!(
-        "window.__VELODESK__ = {};",
+        "window.__VEYNDESK__ = {};",
         serde_json::json!({ "server": if server.is_empty() { serde_json::Value::Null } else { server.into() }, "id": id, "embedded": true, "p2p": p2p })
     );
     let label = format!("remote-{id}-{}", app.webview_windows().len());
@@ -344,13 +344,13 @@ fn viewer_ws(server: &str) -> String {
 /// Viewer window: deliver its WebRTC offer to partner `id` (via public signaling) and return the answer.
 #[tauri::command]
 async fn p2p_signal(id: String, sdp: String) -> Result<serde_json::Value, String> {
-    let (sdp, relay) = velodesk_host::p2p::request_answer(&id, sdp).await?;
+    let (sdp, relay) = veyndesk_host::p2p::request_answer(&id, sdp).await?;
     Ok(serde_json::json!({ "sdp": sdp, "relay": relay }))
 }
 
 fn main() {
     tracing_subscriber::fmt::init();
-    velodesk_host::init_platform();
+    veyndesk_host::init_platform();
 
     let mut cfg = HostConfig::load_or_default();
     // Zero setup: every PC runs its own small server and is reachable peer-to-peer by ID.
@@ -428,7 +428,7 @@ fn main() {
                     } else {
                         None
                     };
-                    velodesk_host::p2p::set_relay(relay);
+                    veyndesk_host::p2p::set_relay(relay);
                     std::thread::sleep(std::time::Duration::from_secs(3));
                 });
                 let cfg2 = cfg.clone();
@@ -477,9 +477,9 @@ fn main() {
                 tauri::async_runtime::spawn(discovery::responder(lan.clone()));
             }
             let (p2p_tx, p2p_rx) = tokio::sync::watch::channel(None);
-            tauri::async_runtime::spawn(velodesk_host::p2p::serve(p2p_rx));
+            tauri::async_runtime::spawn(veyndesk_host::p2p::serve(p2p_rx));
             let p2p_cfg = cfg.clone();
-            tauri::async_runtime::spawn(velodesk_host::run(cfg, auth, ui_tx, cmd_rx, velodesk_host::default_source()));
+            tauri::async_runtime::spawn(veyndesk_host::run(cfg, auth, ui_tx, cmd_rx, veyndesk_host::default_source()));
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 while let Some(ev) = ui_rx.recv().await {

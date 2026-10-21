@@ -1,9 +1,9 @@
 [package]
-name = "velodesk-desktop"
+name = "veyndesk-desktop"
 version = "0.5.0"
 edition = "2021"
 license = "AGPL-3.0-or-later"
-description = "VeloDesk desktop app (host + viewer)"
+description = "Veyndesk desktop app (host + viewer)"
 
 [workspace]
 
@@ -16,9 +16,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync", "net", "time", "macros", "rt-multi-thread"] }
 tracing-subscriber = "0.3"
-velodesk-host = { path = "../../crates/host" }
-velodesk-protocol = { path = "../../crates/protocol" }
-velodesk-server = { path = "../../crates/server" }
+veyndesk-host = { path = "../../crates/host" }
+veyndesk-protocol = { path = "../../crates/protocol" }
+veyndesk-server = { path = "../../crates/server" }
 ureq = "2"
 tar = "0.4.46"
 flate2 = "1.1.10"

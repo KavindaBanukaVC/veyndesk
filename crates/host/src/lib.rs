@@ -1,4 +1,4 @@
-//! Veyndesk host agent core: used by the CLI (`velodesk-host`) and the Tauri desktop app.
+//! Veyndesk host agent core: used by the CLI (`veyndesk-host`) and the Tauri desktop app.
 
 pub mod config;
 pub mod input;
@@ -16,7 +16,7 @@ use std::{
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{info, warn};
-use velodesk_protocol::*;
+use veyndesk_protocol::*;
 use video::{Shared, SourceFactory, VideoCmd};
 
 pub use input::InputCmd;
@@ -95,7 +95,7 @@ pub fn init_platform() {
 }
 
 pub fn default_source() -> SourceFactory {
-    if std::env::var("VELODESK_TEST_PATTERN").map(|v| v == "1").unwrap_or(false) {
+    if std::env::var("VEYNDESK_TEST_PATTERN").map(|v| v == "1").unwrap_or(false) {
         Box::new(|| Box::new(video::TestPattern::new()))
     } else {
         Box::new(|| Box::new(video::XcapSource::new()))

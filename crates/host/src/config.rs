@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use velodesk_protocol::{password_secret, random_password, random_token};
+use veyndesk_protocol::{password_secret, random_password, random_token};
 
-/// Persistent host settings (`%APPDATA%\Veyndesk\host.json` on Windows).
+/// Persistent host settings (`%APPDATA%\Veyndesk\host.json` on Windows, see [`config_path`]).
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct HostConfig {
     /// Server base URL, e.g. `https://desk.example.com` or `ws://192.168.1.10:8080`.
@@ -55,7 +55,23 @@ pub fn one_time_password() -> (String, Credentials) {
 }
 
 pub fn config_path() -> PathBuf {
-    dirs::config_dir().unwrap_or_else(|| PathBuf::from(".")).join("VeloDesk").join("host.json") // kept from the old name so IDs and settings survive the rename
+    static DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    DIR.get_or_init(|| app_dir(&dirs::config_dir().unwrap_or_else(|| PathBuf::from("."))))
+        .join("host.json")
+}
+
+/// `<config>/Veyndesk`. Installs from before the rename kept everything (ID, settings, server data)
+/// in `<config>/Veyndesk`; that folder is moved over once so the ID survives. If the move fails
+/// (e.g. a file is still in use), the old folder keeps being used.
+fn app_dir(base: &std::path::Path) -> PathBuf {
+    let new = base.join("Veyndesk");
+    let old = base.join("VeloDesk"); // name before the rename
+    if !new.exists() && old.is_dir() {
+        if std::fs::rename(&old, &new).is_err() {
+            return old;
+        }
+    }
+    new
 }
 
 impl HostConfig {
@@ -126,5 +142,22 @@ mod tests {
         assert_eq!(c.ws_url(), "wss://desk.example.com/ws/host");
         c.server = "192.168.1.5:8080".into();
         assert_eq!(c.ws_url(), "ws://192.168.1.5:8080/ws/host");
+    }
+
+    #[test]
+    fn migrates_old_folder() {
+        let base = std::env::temp_dir().join(format!("vd-mig-{}", random_token(8)));
+        std::fs::create_dir_all(base.join("VeloDesk")).unwrap();
+        std::fs::write(base.join("VeloDesk").join("host.json"), "{}").unwrap();
+        let dir = app_dir(&base);
+        assert_eq!(dir, base.join("Veyndesk"));
+        assert!(dir.join("host.json").exists());
+        assert!(!base.join("VeloDesk").exists());
+        // Second run: nothing to move.
+        assert_eq!(app_dir(&base), base.join("Veyndesk"));
+        // Fresh install: no old folder.
+        let fresh = base.join("fresh");
+        assert_eq!(app_dir(&fresh), fresh.join("Veyndesk"));
+        std::fs::remove_dir_all(&base).ok();
     }
 }

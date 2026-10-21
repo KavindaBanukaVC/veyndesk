@@ -1,6 +1,6 @@
-//! VeloDesk wire protocol.
+//! Veyndesk wire protocol.
 //!
-//! Every peer talks to the VeloDesk server over a WebSocket.
+//! Every peer talks to the Veyndesk server over a WebSocket.
 //! * **Text frames** carry JSON control messages (tagged by the `"t"` field).
 //! * **Binary frames** carry video. Host → server frames are prefixed with a
 //!   little-endian `u32` session id; the server strips it and forwards the

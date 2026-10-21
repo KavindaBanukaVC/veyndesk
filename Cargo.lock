@@ -3944,7 +3944,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
-name = "velodesk-host"
+name = "version-compare"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03c2856837ef78f57382f06b2b8563a2f512f7185d732608fd9176cb3b8edf0e"
+
+[[package]]
+name = "version_check"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "veyndesk-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3970,14 +3982,14 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ureq",
- "velodesk-protocol",
+ "veyndesk-protocol",
  "webrtc",
  "windows-sys 0.60.2",
  "xcap",
 ]
 
 [[package]]
-name = "velodesk-protocol"
+name = "veyndesk-protocol"
 version = "0.1.0"
 dependencies = [
  "hex",
@@ -3988,7 +4000,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "velodesk-server"
+name = "veyndesk-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -4003,20 +4015,8 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "velodesk-protocol",
+ "veyndesk-protocol",
 ]
-
-[[package]]
-name = "version-compare"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03c2856837ef78f57382f06b2b8563a2f512f7185d732608fd9176cb3b8edf0e"
-
-[[package]]
-name = "version_check"
-version = "0.9.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "wasi"

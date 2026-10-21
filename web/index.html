@@ -171,6 +171,9 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
+// Keys used before the rename (velodesk.*) → veyndesk.*
+try { for (const k of ["recent", "fit"]) { const o = localStorage.getItem("velodesk." + k);
+  if (o !== null) { if (localStorage.getItem("veyndesk." + k) === null) localStorage.setItem("veyndesk." + k, o); localStorage.removeItem("velodesk." + k); } } } catch {}
 let toastTimer;
 function toast(text, ms = 2600) {
   const t = $("toast"); t.textContent = text; t.classList.remove("hidden");
@@ -181,11 +184,11 @@ const fmtId = (id) => id.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
 // ---------------------------------------------------------------- connect screen
 const params = new URLSearchParams(location.search);
 // Desktop app passes its settings this way (the viewer is bundled inside Veyndesk.exe).
-const EMBED = window.__VELODESK__ || null;
+const EMBED = window.__VEYNDESK__ || null;
 if (EMBED) { if (EMBED.server) params.set("server", EMBED.server); if (EMBED.id) params.set("id", EMBED.id); }
 if (params.get("id")) $("pid").value = fmtId(params.get("id"));
 function renderRecent() {
-  const list = store.get("velodesk.recent", []);
+  const list = store.get("veyndesk.recent", []);
   $("recent").innerHTML = "";
   for (const r of list) {
     const c = document.createElement("span");
@@ -311,13 +314,13 @@ function onControl(m, password) {
     }
     case "accepted": {
       S.connected = true; S.name = m.name;
-      const recent = store.get("velodesk.recent", []).filter(r => r.id !== S.id);
-      recent.unshift({ id: S.id, name: m.name }); store.set("velodesk.recent", recent.slice(0, 6));
+      const recent = store.get("veyndesk.recent", []).filter(r => r.id !== S.id);
+      recent.unshift({ id: S.id, name: m.name }); store.set("veyndesk.recent", recent.slice(0, 6));
       $("vtitle").textContent = `${m.name} · ${fmtId(S.id)}`;
       document.title = `${m.name} — Veyndesk`;
       $("home").classList.add("hidden"); $("viewer").classList.remove("hidden");
       $("overlay").classList.remove("hidden");
-      if (store.get("velodesk.fit", true)) $("stage").classList.add("fit"); else $("stage").classList.remove("fit");
+      if (store.get("veyndesk.fit", true)) $("stage").classList.add("fit"); else $("stage").classList.remove("fit");
       canvas.focus();
       break;
     }
@@ -477,7 +480,7 @@ window.addEventListener("blur", releaseAll);
 $("bClose").onclick = () => { if (ws) ws.close(); };
 $("bRefresh").onclick = () => { send({ t: "refresh" }); canvas.focus(); };
 $("bFit").onclick = () => {
-  const fit = $("stage").classList.toggle("fit"); store.set("velodesk.fit", fit); layout(); canvas.focus();
+  const fit = $("stage").classList.toggle("fit"); store.set("veyndesk.fit", fit); layout(); canvas.focus();
 };
 $("bFull").onclick = () => {
   if (document.fullscreenElement) document.exitFullscreen();

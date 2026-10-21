@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, warn};
-use velodesk_protocol::{HostEvent, HostToServer, ViewerInput};
+use veyndesk_protocol::{HostEvent, HostToServer, ViewerInput};
 
 pub enum InputCmd {
     Event(u32, ViewerInput),
@@ -25,7 +25,7 @@ pub fn spawn_input(
 ) -> mpsc::Sender<InputCmd> {
     let (tx, rx) = mpsc::channel::<InputCmd>();
     std::thread::Builder::new()
-        .name("velodesk-input".into())
+        .name("veyndesk-input".into())
         .spawn(move || input_loop(rx, shared, out, active_sessions))
         .expect("spawn input thread");
     tx

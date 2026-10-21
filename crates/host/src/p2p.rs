@@ -41,12 +41,13 @@ pub fn stun_servers() -> Vec<String> {
     vec!["stun:stun.l.google.com:19302".into(), "stun:stun.cloudflare.com:3478".into()]
 }
 
-/// Public signaling relay (override with `VELODESK_SIGNAL_URL`, e.g. a self-hosted ntfy).
+/// Public signaling relay (override with `VEYNDESK_SIGNAL_URL`, e.g. a self-hosted ntfy).
 pub fn signal_base() -> String {
-    std::env::var("VELODESK_SIGNAL_URL").unwrap_or_else(|_| "https://ntfy.sh".into())
+    std::env::var("VEYNDESK_SIGNAL_URL").unwrap_or_else(|_| "https://ntfy.sh".into())
 }
 
 pub fn host_topic(id: &str) -> String {
+    // "velodesk-" is a wire constant from before the rename: changing it would stop 0.5.0 apps finding newer ones.
     format!("vdp-{}", &sha256_hex(&format!("velodesk-p2p:{id}"))[..24])
 }
 

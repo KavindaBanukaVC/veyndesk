@@ -1,8 +1,8 @@
 # Veyndesk
 
 **Open-source remote desktop for Windows, macOS and Linux, like AnyDesk.** Open the app, share your ID and password,
-and your partner can see and control your screen. It works on any Wi-Fi or mobile data, and there
-is nothing to set up.
+and your partner can see and control your screen. It connects directly when the network allows it and falls back to a
+relay when it doesn't, so there is no server or port forwarding to set up.
 
 ## Download
 
@@ -34,7 +34,8 @@ For unattended access, set a permanent password in **Settings**. Sessions that u
 - **Direct connection (P2P):** connects PC-to-PC using WebRTC.
 - **Automatic relay:** used when the network blocks direct connections.
 - **Encrypted end to end:** DTLS encryption. The password is never sent; a challenge–response check proves it.
-- **Accept / Deny prompt:** asks before anyone sees your screen. Wrong-password lockout.
+- **Accept / Deny prompt:** asks before anyone sees your screen with the one-time password. If you set a permanent
+  password for unattended access, sessions using it start **without** a prompt. Wrong-password lockout.
 - **Screen sharing:** adaptive quality, sharp text, multi-monitor.
 - **Input and clipboard:** mouse, keyboard and clipboard sync.
 - **Optional self-hosted server:** web admin panel, audit log, browser access.
@@ -46,7 +47,7 @@ For unattended access, set a permanent password in **Settings**. Sessions that u
 | `crates/host` | Screen capture → changed-tile JPEG encoding, input injection, P2P (WebRTC) |
 | `crates/server` | Small built-in server (runs inside every app; can also run alone) |
 | `crates/protocol` | Wire protocol and password challenge–response |
-| `desktop/` | The Windows app (Tauri) |
+| `desktop/` | The desktop app for Windows, macOS and Linux (Tauri) |
 | `web/` | Viewer and admin pages |
 
 ## Build from source
@@ -78,8 +79,17 @@ it uses these services:
 | **Google / Cloudflare STUN servers** | Opening a direct connection | Standard STUN requests (your public IP address) |
 | **Cloudflare quick tunnel** (`cloudflared`, downloaded on first start) | Relay when a direct connection is impossible | Encrypted session traffic, only during a session that falls back to the relay |
 
-Screen content and keystrokes go only to the partner you accepted. Settings are stored locally in
-`%APPDATA%\VeloDesk`. **Uninstall:** Windows Settings → Apps → Veyndesk → Uninstall.
+Screen content and keystrokes go only to the partner you connected with. Settings (your ID, password hash and
+options) are stored only on your computer:
+
+| System | Settings folder |
+|---|---|
+| Windows | `%APPDATA%\Veyndesk` |
+| macOS | `~/Library/Application Support/Veyndesk` |
+| Linux | `~/.config/Veyndesk` |
+
+**Uninstall:** Windows: Settings → Apps → Veyndesk → Uninstall. macOS: drag Veyndesk from Applications to the Trash.
+Linux: `sudo apt remove veyndesk` (or delete the AppImage). To also remove your ID and settings, delete the folder above.
 
 ## License
 

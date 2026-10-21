@@ -19,7 +19,7 @@ use std::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, warn};
-use velodesk_protocol::{encode_frame, HostEvent, HostToServer, MonitorInfo, Tile};
+use veyndesk_protocol::{encode_frame, HostEvent, HostToServer, MonitorInfo, Tile};
 
 const TILE: usize = 64;
 const MAX_INFLIGHT: usize = 2;
@@ -131,7 +131,7 @@ impl FrameSource for XcapSource {
     }
 }
 
-/// Animated synthetic screen for headless testing (`VELODESK_TEST_PATTERN=1`).
+/// Animated synthetic screen for headless testing (`VEYNDESK_TEST_PATTERN=1`).
 pub struct TestPattern {
     t: u32,
 }
@@ -354,7 +354,7 @@ pub type SourceFactory = Box<dyn FnOnce() -> Box<dyn FrameSource> + Send>;
 pub fn spawn_video(make_source: SourceFactory, out: UnboundedSender<Outgoing>, shared: Arc<Shared>) -> mpsc::Sender<VideoCmd> {
     let (tx, rx) = mpsc::channel::<VideoCmd>();
     std::thread::Builder::new()
-        .name("velodesk-video".into())
+        .name("veyndesk-video".into())
         .spawn(move || {
             let mut source = make_source();
             let mons = source.monitors();
@@ -567,7 +567,7 @@ mod tests {
         assert!(n > 0 && n < g.n() / 4, "only the moving square should be dirty, got {n}");
         let (msg, bytes) = build_frame(&b, &g, 9, 1, &ch, 60);
         assert!(bytes > 0);
-        let f = velodesk_protocol::decode_frame(&msg[4..]).unwrap();
+        let f = veyndesk_protocol::decode_frame(&msg[4..]).unwrap();
         assert_eq!(f.width as usize, a.width);
         assert!(f.tiles.iter().all(|t| t.4.starts_with(&[0xFF, 0xD8])));
     }

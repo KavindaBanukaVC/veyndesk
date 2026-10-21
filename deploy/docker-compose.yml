@@ -1,16 +1,16 @@
 # One-command self-hosting with automatic HTTPS:
 #   1. Point a DNS name (e.g. desk.example.com) at this machine.
 #   2. Set DOMAIN below (or in .env) and run:  docker compose up -d
-#   3. Admin token:  docker compose exec velodesk cat /data/admin_token
+#   3. Admin token:  docker compose exec veyndesk cat /data/admin_token
 services:
-  velodesk:
+  veyndesk:
     build: ..
     restart: unless-stopped
     environment:
-      VELODESK_TRUST_PROXY: "1"
-      # VELODESK_ADMIN_TOKEN: "change-me"
+      VEYNDESK_TRUST_PROXY: "1"
+      # VEYNDESK_ADMIN_TOKEN: "change-me"
     volumes:
-      - velodesk-data:/data
+      - veyndesk-data:/data
 
   caddy:
     image: caddy:2
@@ -18,10 +18,10 @@ services:
     ports: ["80:80", "443:443"]
     environment:
       DOMAIN: ${DOMAIN:-desk.example.com}
-    command: caddy reverse-proxy --from ${DOMAIN:-desk.example.com} --to velodesk:8080
+    command: caddy reverse-proxy --from ${DOMAIN:-desk.example.com} --to veyndesk:8080
     volumes:
       - caddy-data:/data
 
 volumes:
-  velodesk-data:
+  veyndesk-data:
   caddy-data:

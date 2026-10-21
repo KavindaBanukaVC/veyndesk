@@ -1,5 +1,6 @@
 ; Allow Veyndesk through Windows Firewall (direct connections, LAN server) on any network profile.
 !macro NSIS_HOOK_POSTINSTALL
+  ; remove the firewall rule created by installs from before the rename
   nsExec::Exec 'netsh advfirewall firewall delete rule name="VeloDesk"'
   nsExec::Exec 'netsh advfirewall firewall delete rule name="Veyndesk"'
   nsExec::Exec 'netsh advfirewall firewall add rule name="Veyndesk" dir=in action=allow program="$INSTDIR\Veyndesk.exe" enable=yes profile=any'

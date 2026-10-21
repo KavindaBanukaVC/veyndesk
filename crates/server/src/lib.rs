@@ -1,10 +1,10 @@
 //! Veyndesk server library: rendezvous + relay + web client + admin API.
 //!
 //! Env vars:
-//!   VELODESK_BIND         listen address           (default 0.0.0.0:8080)
-//!   VELODESK_DATA         data directory           (default ./data)
-//!   VELODESK_ADMIN_TOKEN  admin API/panel token    (generated + printed if unset)
-//!   VELODESK_TRUST_PROXY  "1" to trust X-Forwarded-For (when behind Caddy/nginx)
+//!   VEYNDESK_BIND         listen address           (default 0.0.0.0:8080)
+//!   VEYNDESK_DATA         data directory           (default ./data)
+//!   VEYNDESK_ADMIN_TOKEN  admin API/panel token    (generated + printed if unset)
+//!   VEYNDESK_TRUST_PROXY  "1" to trust X-Forwarded-For (when behind Caddy/nginx)
 
 mod state;
 
@@ -23,12 +23,12 @@ use state::{now_secs, App, Session};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc;
 use tracing::{info, warn};
-use velodesk_protocol::*;
+use veyndesk_protocol::*;
 
 const INDEX_HTML: &str = include_str!("../../../web/index.html");
 const ADMIN_HTML: &str = include_str!("../../../web/admin.html");
 
-/// Runs the server until the process exits. Used by the `velodesk-server` binary and
+/// Runs the server until the process exits. Used by the `veyndesk-server` binary and
 /// embedded in the desktop app ("run a server on this PC").
 pub async fn serve(bind: &str, data_dir: std::path::PathBuf) -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(bind).await?;

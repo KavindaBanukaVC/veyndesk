@@ -1,18 +1,18 @@
-//! `velodesk-host` — headless / console host agent.
+//! `veyndesk-host` — headless / console host agent.
 //!
-//!   velodesk-host --server https://desk.example.com
-//!   velodesk-host --set-password "my unattended password"
-//!   velodesk-host --no-one-time          (only accept the permanent password)
+//!   veyndesk-host --server https://desk.example.com
+//!   veyndesk-host --set-password "my unattended password"
+//!   veyndesk-host --no-one-time          (only accept the permanent password)
 
 use clap::Parser;
 use std::sync::{Arc, Mutex};
-use velodesk_host::{config::*, AuthConfig, UiEvent};
+use veyndesk_host::{config::*, AuthConfig, UiEvent};
 
 #[derive(Parser)]
-#[command(name = "velodesk-host", version, about = "Veyndesk remote desktop host agent")]
+#[command(name = "veyndesk-host", version, about = "Veyndesk remote desktop host agent")]
 struct Args {
     /// Server URL (http(s):// or ws(s)://). Saved for next time.
-    #[arg(long, env = "VELODESK_SERVER")]
+    #[arg(long, env = "VEYNDESK_SERVER")]
     server: Option<String>,
     /// Display name for this computer. Saved for next time.
     #[arg(long)]
@@ -35,10 +35,10 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "velodesk_host=info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "veyndesk_host=info".into()),
         )
         .init();
-    velodesk_host::init_platform();
+    veyndesk_host::init_platform();
     let args = Args::parse();
     let mut cfg = HostConfig::load_or_default();
 
@@ -77,7 +77,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     println!("──────────────────────────────────────────");
-    println!(" Veyndesk host v{}  —  {}", velodesk_host::VERSION, cfg.name);
+    println!(" Veyndesk host v{}  —  {}", veyndesk_host::VERSION, cfg.name);
     println!(" Server   : {}", cfg.server);
     if let Some(p) = &otp {
         println!(" Password : {p}   (one-time, changes on restart)");
@@ -90,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
     let (ui_tx, mut ui_rx) = tokio::sync::mpsc::unbounded_channel();
     let (_cmd_tx, cmd_rx) = tokio::sync::mpsc::unbounded_channel();
     let cfg = Arc::new(Mutex::new(cfg));
-    tokio::spawn(velodesk_host::run(cfg, Arc::new(Mutex::new(auth)), ui_tx, cmd_rx, velodesk_host::default_source()));
+    tokio::spawn(veyndesk_host::run(cfg, Arc::new(Mutex::new(auth)), ui_tx, cmd_rx, veyndesk_host::default_source()));
 
     while let Some(ev) = ui_rx.recv().await {
         match ev {

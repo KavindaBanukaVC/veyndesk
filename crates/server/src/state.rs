@@ -9,7 +9,7 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::mpsc::UnboundedSender;
-use velodesk_protocol::{random_token, sha256_hex};
+use veyndesk_protocol::{random_token, sha256_hex};
 
 pub fn now_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
@@ -104,7 +104,7 @@ impl App {
         };
         let audit_file = OpenOptions::new().create(true).append(true).open(data_dir.join("audit.log"))?;
 
-        let admin_token = match std::env::var("VELODESK_ADMIN_TOKEN") {
+        let admin_token = match std::env::var("VEYNDESK_ADMIN_TOKEN") {
             Ok(t) if !t.is_empty() => t,
             _ => {
                 let p = data_dir.join("admin_token");
@@ -124,7 +124,7 @@ impl App {
             audit_file: Mutex::new(audit_file),
             data_dir,
             admin_token,
-            trust_proxy: std::env::var("VELODESK_TRUST_PROXY").map(|v| v == "1").unwrap_or(false),
+            trust_proxy: std::env::var("VEYNDESK_TRUST_PROXY").map(|v| v == "1").unwrap_or(false),
         })
     }
 
@@ -212,7 +212,7 @@ impl App {
             let h = live.hosts.remove(id).unwrap();
             for sid in h.sessions {
                 if let Some(s) = live.sessions.remove(&sid) {
-                    let msg = serde_json::to_string(&velodesk_protocol::ServerToViewer::Closed {
+                    let msg = serde_json::to_string(&veyndesk_protocol::ServerToViewer::Closed {
                         reason: "Partner went offline".into(),
                     })
                     .unwrap();

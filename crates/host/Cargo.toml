@@ -1,5 +1,5 @@
 [package]
-name = "velodesk-host"
+name = "veyndesk-host"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -28,7 +28,7 @@ tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"]
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ureq = "2"
-velodesk-protocol = { version = "0.1.0", path = "../protocol" }
+veyndesk-protocol = { version = "0.1.0", path = "../protocol" }
 webrtc = "0.21.1"
 xcap = "0.9.8"
 
@@ -36,7 +36,7 @@ xcap = "0.9.8"
 windows-sys = { version = "0.60", features = ["Win32_UI_HiDpi", "Win32_Foundation"] }
 
 [[bin]]
-name = "velodesk-host"
+name = "veyndesk-host"
 path = "src/main.rs"
 
 [dev-dependencies]

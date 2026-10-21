@@ -3,7 +3,7 @@
 ## How it works today
 
 ```
- ┌──────────── Host (Windows) ────────────┐            ┌──── velodesk-server ────┐         ┌── Viewer ──┐
+ ┌──────────── Host (Windows) ────────────┐            ┌──── veyndesk-server ────┐         ┌── Viewer ──┐
  │ capture thread (xcap, 30 fps cap)      │            │ /ws/host   rendezvous   │         │ browser /  │
  │   → 64×64 tile diff vs previous frame  │  WSS       │ /ws/viewer relay        │  WSS    │ Tauri      │
  │   → per-viewer dirty set               │──binary──▶ │ strips sid, forwards    │──────▶  │ canvas     │

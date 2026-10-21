@@ -47,7 +47,7 @@ const CODE_CHARS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 /// e.g. `K7QM-3XPA`
 pub fn new_code() -> String {
-    let t = velodesk_protocol::random_token(8);
+    let t = veyndesk_protocol::random_token(8);
     let b = t.as_bytes();
     let c: String = (0..8).map(|i| CODE_CHARS[(b[i] as usize * 7 + b[i + 8] as usize) % CODE_CHARS.len()] as char).collect();
     format!("{}-{}", &c[..4], &c[4..])
@@ -60,6 +60,7 @@ pub fn normalize_code(s: &str) -> Option<String> {
 }
 
 fn topic(code: &str) -> String {
+    // "velodesk-" is a wire constant from before the rename (keeps team codes working across versions).
     format!("velodesk-{}", code.replace('-', "").to_ascii_lowercase())
 }
 
@@ -122,7 +123,7 @@ fn cloudflared_asset() -> Result<&'static str, String> {
 }
 
 fn cloudflared_path() -> PathBuf {
-    velodesk_host::config::config_path().parent().map(|p| p.join(BIN)).unwrap_or_else(|| BIN.into())
+    veyndesk_host::config::config_path().parent().map(|p| p.join(BIN)).unwrap_or_else(|| BIN.into())
 }
 
 fn ensure_cloudflared(me: &Internet) -> Result<PathBuf, String> {

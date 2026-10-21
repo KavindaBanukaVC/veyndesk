@@ -1,14 +1,14 @@
 //! Test harness for zero-setup P2P.
-//!   VELODESK_TEST_PATTERN=1 VELODESK_SIGNAL_URL=http://127.0.0.1:8096 \
-//!     cargo run -p velodesk-host --example p2p_demo -- http://127.0.0.1:8091 <password> <web/index.html>
+//!   VEYNDESK_TEST_PATTERN=1 VEYNDESK_SIGNAL_URL=http://127.0.0.1:8096 \
+//!     cargo run -p veyndesk-host --example p2p_demo -- http://127.0.0.1:8091 <password> <web/index.html>
 //! Serves the viewer at http://127.0.0.1:8097/viewer.html and POST /signal/<id> for its offers.
 use axum::{extract::Path, response::Html, routing::{get, post}, Router};
 use std::sync::{Arc, Mutex};
-use velodesk_host::{config::HostConfig, p2p, AuthConfig, UiEvent};
+use veyndesk_host::{config::HostConfig, p2p, AuthConfig, UiEvent};
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_env_filter("velodesk_host=debug").init();
+    tracing_subscriber::fmt().with_env_filter("veyndesk_host=debug").init();
     let a: Vec<String> = std::env::args().collect();
     let mut cfg = HostConfig::load_or_default();
     cfg.server = a[1].clone();
@@ -17,8 +17,8 @@ async fn main() {
     let auth = AuthConfig::build(&cfg, Some(&a[2]));
     let (ui_tx, mut ui_rx) = tokio::sync::mpsc::unbounded_channel();
     let (_c, cmd_rx) = tokio::sync::mpsc::unbounded_channel();
-    tokio::spawn(velodesk_host::run(Arc::new(Mutex::new(cfg)), Arc::new(Mutex::new(auth)), ui_tx, cmd_rx, velodesk_host::default_source()));
-    if let Ok(r) = std::env::var("VELODESK_TEST_RELAY") { p2p::set_relay(Some(r)); }
+    tokio::spawn(veyndesk_host::run(Arc::new(Mutex::new(cfg)), Arc::new(Mutex::new(auth)), ui_tx, cmd_rx, veyndesk_host::default_source()));
+    if let Ok(r) = std::env::var("VEYNDESK_TEST_RELAY") { p2p::set_relay(Some(r)); }
     let (t_tx, t_rx) = tokio::sync::watch::channel(None);
     tokio::spawn(p2p::serve(t_rx));
     let page = std::fs::read_to_string(&a[3]).unwrap();

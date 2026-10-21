@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["crates/protocol", "crates/server", "crates/host"]
+exclude = ["desktop/src-tauri"]
+# The Tauri desktop app lives in desktop/src-tauri and is built separately
+# (it needs WebView2 on Windows / webkit2gtk on Linux).
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/your-org/velodesk"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+opt-level = 3

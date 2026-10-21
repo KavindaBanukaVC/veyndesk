@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Veyndesk</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1f2630; --border: #2d3540;
+    --text: #e6edf3; --muted: #8b949e; --accent: #3b82f6; --accent2: #2563eb;
+    --ok: #22c55e; --bad: #ef4444; --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  .hidden { display: none !important; }
+
+  /* ---------- connect screen ---------- */
+  #home { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
+  .card { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg,#3b82f6,#8b5cf6);
+    display: grid; place-items: center; font-weight: 800; }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--muted); margin: 0 0 22px; font-size: 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  input[type=text], input[type=password] { width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); outline: none; font-size: 16px; }
+  input:focus { border-color: var(--accent); }
+  #pid { letter-spacing: 2px; font-variant-numeric: tabular-nums; font-size: 20px; }
+  .btn { border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer; background: var(--accent); font-weight: 600; }
+  .btn:hover { background: var(--accent2); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btn.full { width: 100%; margin-top: 20px; }
+  .msg { min-height: 22px; margin-top: 12px; font-size: 14px; color: var(--bad); }
+  .recent { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+    font-size: 13px; cursor: pointer; }
+  .foot { margin-top: 20px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  .foot a { color: var(--muted); }
+
+  /* ---------- viewer ---------- */
+  #viewer { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; }
+  #bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--panel);
+    border-bottom: 1px solid var(--border); flex-wrap: wrap; z-index: 2; }
+  #bar .title { font-weight: 600; margin-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+  #bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; margin-right: 6px; }
+  .tb { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+  .tb:hover { border-color: var(--accent); }
+  .tb.danger { background: #3a1518; border-color: #5c1f24; }
+  #stats { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #stage { flex: 1; overflow: auto; display: grid; place-items: safe center; position: relative; }
+  canvas#screen { display: block; cursor: default; image-rendering: auto; outline: none; touch-action: none; }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--panel);
+    border: 1px solid var(--border); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 5;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  #overlay { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 20px; width: min(480px, 92vw); }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  dialog textarea { width: 100%; min-height: 140px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  @media (max-width: 640px) { #stats { display: none; } .card { padding: 22px; } }
+</style>
+</head>
+<body>
+
+<section id="home">
+  <div class="card">
+    <div class="brand"><div class="logo">V</div><h1>Veyndesk</h1></div>
+    <p class="sub">Open-source remote desktop — connect from any browser.</p>
+    <form id="form" autocomplete="off">
+      <label for="pid">Partner ID</label>
+      <input id="pid" type="text" inputmode="numeric" placeholder="123 456 789" required>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" placeholder="Shown on the remote computer" required>
+      <button class="btn full" id="go" type="submit">Connect</button>
+      <div class="msg" id="msg"></div>
+    </form>
+    <div class="recent" id="recent"></div>
+    <div class="foot"><span id="ver">Protocol v1</span><a href="/admin">Admin panel</a></div>
+  </div>
+</section>
+
+<section id="viewer" class="hidden">
+  <div id="bar">
+    <span class="title"><span class="dot"></span><span id="vtitle">Remote</span></span>
+    <button class="tb" id="bFit" title="Toggle fit to window / actual size">Fit</button>
+    <button class="tb" id="bFull" title="Fullscreen">Fullscreen</button>
+    <select class="tb" id="bMon" title="Monitor"></select>
+    <select class="tb" id="bKeys" title="Send special keys">
+      <option value="">Keys…</option>
+      <option value="ctrl_alt_del">Ctrl+Alt+Del</option>
+      <option value="ctrl_shift_esc">Task Manager</option>
+      <option value="alt_tab">Alt+Tab</option>
+      <option value="win">Windows key</option>
+      <option value="win_d">Show desktop</option>
+      <option value="win_r">Run…</option>
+      <option value="print_screen">Print Screen</option>
+    </select>
+    <button class="tb" id="bClip" title="Send text / clipboard to remote">Clipboard</button>
+    <button class="tb" id="bRefresh" title="Repaint full screen">Refresh</button>
+    <button class="tb danger" id="bClose">Disconnect</button>
+    <span id="stats"></span>
+  </div>
+  <div id="stage" class="fit">
+    <canvas id="screen" tabindex="0"></canvas>
+    <div id="overlay">Waiting for first frame…</div>
+  </div>
+</section>
+
+<dialog id="clipDlg">
+  <strong>Clipboard</strong>
+  <p class="sub" style="margin:6px 0 10px">Text from the remote clipboard appears here. Edit and send, or type it as keystrokes.</p>
+  <textarea id="clipText"></textarea>
+  <div class="row">
+    <button class="tb" id="clipCopy">Copy locally</button>
+    <button class="tb" id="clipType">Type it</button>
+    <button class="tb" id="clipSend">Set remote clipboard</button>
+    <button class="tb" id="clipClose">Close</button>
+  </div>
+</dialog>
+<div id="toast" class="hidden"></div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- SHA-256 (works on plain http too)
+const sha256hex = (() => {
+  const K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,
+    0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+    0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,
+    0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,
+    0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  return (str) => {
+    const msg = new TextEncoder().encode(str);
+    const len = msg.length, total = ((len + 9 + 63) >> 6) << 6;
+    const buf = new Uint8Array(total); buf.set(msg); buf[len] = 0x80;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(total - 8, Math.floor(len / 0x20000000)); dv.setUint32(total - 4, (len * 8) >>> 0);
+    const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+    const W = new Uint32Array(64);
+    for (let off = 0; off < total; off += 64) {
+      for (let i = 0; i < 16; i++) W[i] = dv.getUint32(off + i * 4);
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(W[i-15], 7) ^ rotr(W[i-15], 18) ^ (W[i-15] >>> 3);
+        const s1 = rotr(W[i-2], 17) ^ rotr(W[i-2], 19) ^ (W[i-2] >>> 10);
+        W[i] = (W[i-16] + s0 + W[i-7] + s1) >>> 0;
+      }
+      let [a, b, c, d, e, f, g, h] = H;
+      for (let i = 0; i < 64; i++) {
+        const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const t1 = (h + S1 + ((e & f) ^ (~e & g)) + K[i] + W[i]) >>> 0;
+        const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+        h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+    }
+    return Array.from(H, x => x.toString(16).padStart(8, "0")).join("");
+  };
+})();
+console.assert(sha256hex("abc") === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "sha256 self-test");
+
+// ---------------------------------------------------------------- helpers
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+let toastTimer;
+function toast(text, ms = 2600) {
+  const t = $("toast"); t.textContent = text; t.classList.remove("hidden");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), ms);
+}
+const fmtId = (id) => id.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
+
+// ---------------------------------------------------------------- connect screen
+const params = new URLSearchParams(location.search);
+// Desktop app passes its settings this way (the viewer is bundled inside Veyndesk.exe).
+const EMBED = window.__VELODESK__ || null;
+if (EMBED) { if (EMBED.server) params.set("server", EMBED.server); if (EMBED.id) params.set("id", EMBED.id); }
+if (params.get("id")) $("pid").value = fmtId(params.get("id"));
+function renderRecent() {
+  const list = store.get("velodesk.recent", []);
+  $("recent").innerHTML = "";
+  for (const r of list) {
+    const c = document.createElement("span");
+    c.className = "chip"; c.textContent = `${fmtId(r.id)}${r.name ? " · " + r.name : ""}`;
+    c.onclick = () => { $("pid").value = fmtId(r.id); $("pw").focus(); };
+    $("recent").appendChild(c);
+  }
+}
+renderRecent();
+$("pid").addEventListener("input", (e) => { e.target.value = fmtId(e.target.value); });
+(params.get("id") ? $("pw") : $("pid")).focus();
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const id = $("pid").value.replace(/\D/g, "");
+  const pw = $("pw").value;
+  if (id.length < 6) { $("msg").textContent = "Enter the partner's ID."; return; }
+  connect(id, pw);
+});
+
+// ---------------------------------------------------------------- session
+const canvas = $("screen");
+const ctx2d = canvas.getContext("2d", { alpha: false, desynchronized: true });
+let ws = null, S = null;
+
+function wsUrl() {
+  const base = params.get("server") || location.origin;
+  return base.replace(/^http/, "ws").replace(/\/$/, "") + "/ws/viewer";
+}
+
+// WebRTC data channel that behaves like a WebSocket (direct PC-to-PC, used by the desktop app).
+class P2PSocket {
+  constructor(id) {
+    this.readyState = 0; this.parts = new Map(); this.failMsg = "";
+    this._start(id).catch((e) => this._fail(String(e && e.message || e)));
+  }
+  async _start(id) {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }] });
+    this.pc = pc;
+    const dc = pc.createDataChannel("vd", { ordered: true });
+    dc.binaryType = "arraybuffer"; this.dc = dc;
+    dc.onopen = () => { this.readyState = 1; this.onopen && this.onopen(); };
+    dc.onmessage = (e) => typeof e.data === "string" ? this.onmessage({ data: e.data }) : this._chunk(e.data);
+    dc.onclose = () => this._closed();
+    pc.onconnectionstatechange = () => { if (["failed", "closed"].includes(pc.connectionState)) this._fail("Direct connection failed."); };
+    await pc.setLocalDescription(await pc.createOffer());
+    await new Promise((res) => {
+      if (pc.iceGatheringState === "complete") return res();
+      pc.onicegatheringstatechange = () => pc.iceGatheringState === "complete" && res();
+      setTimeout(res, 3000);
+    });
+    const signal = (EMBED && EMBED.signal) || ((i, sdp) => window.__TAURI__.core.invoke("p2p_signal", { id: i, sdp }));
+    let answer = await signal(id, pc.localDescription.sdp);
+    if (typeof answer === "string" && answer.startsWith("{")) answer = JSON.parse(answer);
+    if (typeof answer === "object") { this.relay = answer.relay || ""; answer = answer.sdp; }
+    if (this.readyState === 3) return;
+    $("go").textContent = "Connecting directly…";
+    await pc.setRemoteDescription({ type: "answer", sdp: answer });
+    setTimeout(() => { if (this.readyState === 0) this._fail("Could not open a direct connection (the network blocks it)."); }, 7000);
+  }
+  _fail(msg) { if (!this.failMsg) this.failMsg = msg; this._closed(); }
+  _closed() {
+    if (this.readyState === 3) return;
+    const wasOpen = this.readyState === 1;
+    this.readyState = 3;
+    try { this.pc && this.pc.close(); } catch {}
+    this.onclose && this.onclose({ reason: this.failMsg, p2pFailedEarly: !wasOpen, relay: this.relay || "" });
+  }
+  send(s) { if (this.readyState === 1) this.dc.send(s); }
+  close() { this._closed(); }
+  // u32 msg_id | u16 index | u16 count | payload
+  _chunk(buf) {
+    const dv = new DataView(buf);
+    const id = dv.getUint32(0, true), idx = dv.getUint16(4, true), n = dv.getUint16(6, true);
+    const body = new Uint8Array(buf, 8);
+    if (n <= 1) { this.onmessage({ data: body.slice().buffer }); return; }
+    let e = this.parts.get(id);
+    if (!e) { e = { n, got: 0, arr: new Array(n) }; this.parts.set(id, e); }
+    if (!e.arr[idx]) { e.arr[idx] = body.slice(); e.got++; }
+    if (e.got === n) {
+      this.parts.delete(id);
+      const out = new Uint8Array(e.arr.reduce((a, b) => a + b.length, 0));
+      let p = 0; for (const a of e.arr) { out.set(a, p); p += a.length; }
+      this.onmessage({ data: out.buffer });
+    }
+  }
+}
+
+function connect(id, password, viaServer) {
+  $("msg").textContent = ""; $("go").disabled = true;
+  const p2p = !viaServer && EMBED && EMBED.p2p;
+  $("go").textContent = p2p ? "Finding partner…" : "Connecting…";
+  S = { id, fw: 0, fh: 0, held: new Set(), frames: 0, bytes: 0, lastStats: performance.now(),
+        hostStats: null, queue: Promise.resolve(), pending: 0, connected: false, name: "" };
+  ws = p2p ? new P2PSocket(id) : new WebSocket(wsUrl());
+  ws.binaryType = "arraybuffer";
+  ws.onopen = () => { $("go").textContent = "Connecting…"; send({ t: "connect", id }); };
+  ws.onmessage = (ev) => typeof ev.data === "string" ? onControl(JSON.parse(ev.data), password) : onFrame(ev.data);
+  ws.onclose = (ev) => {
+    const wasConnected = S && S.connected;
+    // Direct connection impossible → try the team / LAN server, if there is one.
+    if (p2p && ev && ev.p2pFailedEarly && !$("msg").textContent && (ev.relay || params.get("server"))) {
+      if (ev.relay) params.set("server", ev.relay);   // partner's own relay (works through any network)
+      $("go").textContent = "Connecting via relay…";
+      connect(id, password, true); return;
+    }
+    resetHome();
+    if (wasConnected) toast("Disconnected");
+    else if (!$("msg").textContent) $("msg").textContent = (ev && ev.reason) ||
+      ("Could not reach the Veyndesk server at " + wsUrl().replace(/^ws/, "http").replace("/ws/viewer", "") + ". Check the address and that Windows Firewall on the server PC allows Veyndesk (port 21118).");
+  };
+}
+
+function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+function onControl(m, password) {
+  switch (m.t) {
+    case "challenge": {
+      const secret = sha256hex(`${m.salt}:${password}`);
+      send({ t: "auth", proof: sha256hex(`${secret}:${m.nonce}`) });
+      $("go").textContent = "Waiting for the remote side…";
+      break;
+    }
+    case "accepted": {
+      S.connected = true; S.name = m.name;
+      const recent = store.get("velodesk.recent", []).filter(r => r.id !== S.id);
+      recent.unshift({ id: S.id, name: m.name }); store.set("velodesk.recent", recent.slice(0, 6));
+      $("vtitle").textContent = `${m.name} · ${fmtId(S.id)}`;
+      document.title = `${m.name} — Veyndesk`;
+      $("home").classList.add("hidden"); $("viewer").classList.remove("hidden");
+      $("overlay").classList.remove("hidden");
+      if (store.get("velodesk.fit", true)) $("stage").classList.add("fit"); else $("stage").classList.remove("fit");
+      canvas.focus();
+      break;
+    }
+    case "rejected": $("msg").textContent = m.reason; ws.close(); break;
+    case "error": $("msg").textContent = m.message; if (S && S.connected) toast(m.message); ws.close(); break;
+    case "closed": toast(m.reason); break;
+    case "host": onHostEvent(m.msg); break;
+  }
+}
+
+function onHostEvent(e) {
+  if (e.t === "stats") S.hostStats = e;
+  else if (e.t === "clipboard") {
+    S.remoteClip = e.text;
+    $("clipText").value = e.text;
+    if (navigator.clipboard && document.hasFocus()) navigator.clipboard.writeText(e.text).then(
+      () => toast("Remote clipboard copied"), () => toast("Remote clipboard updated — open Clipboard to copy"));
+  } else if (e.t === "monitors") {
+    const sel = $("bMon"); sel.innerHTML = "";
+    e.list.forEach(mo => {
+      const o = document.createElement("option");
+      o.value = mo.index; o.textContent = `${mo.primary ? "★ " : ""}${mo.name} (${mo.width}×${mo.height})`;
+      sel.appendChild(o);
+    });
+    sel.value = e.active; sel.classList.toggle("hidden", e.list.length < 2);
+  }
+}
+
+// Binary frame: u8 kind, u32 seq, u16 fw, u16 fh, u16 n, n × {u16 x,y,w,h, u32 len, jpeg}
+function onFrame(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint8(0) !== 1) return;
+  const seq = dv.getUint32(1, true), fw = dv.getUint16(5, true), fh = dv.getUint16(7, true), n = dv.getUint16(9, true);
+  let p = 11; const tiles = [];
+  for (let i = 0; i < n; i++) {
+    const x = dv.getUint16(p, true), y = dv.getUint16(p + 2, true), len = dv.getUint32(p + 8, true);
+    tiles.push({ x, y, blob: new Blob([new Uint8Array(buf, p + 12, len)], { type: "image/jpeg" }) });
+    p += 12 + len;
+  }
+  S.bytes += buf.byteLength;
+  // Decode in parallel, paint in order, then ack so the host can send the next frame.
+  const decoded = Promise.all(tiles.map(t => createImageBitmap(t.blob).then(bmp => ({ ...t, bmp }), () => null)));
+  S.queue = S.queue.then(async () => {
+    const list = await decoded;
+    if (fw !== S.fw || fh !== S.fh) {
+      S.fw = canvas.width = fw; S.fh = canvas.height = fh; layout();
+    }
+    for (const t of list) if (t) { ctx2d.drawImage(t.bmp, t.x, t.y); t.bmp.close(); }
+    $("overlay").classList.add("hidden");
+    S.frames++;
+    send({ t: "ack", seq });
+    updateStats();
+  });
+}
+
+function updateStats() {
+  const now = performance.now(), dt = (now - S.lastStats) / 1000;
+  if (dt < 1) return;
+  const fps = S.frames / dt, kbps = S.bytes * 8 / 1000 / dt;
+  const q = S.hostStats ? ` · q${S.hostStats.quality}` : "";
+  $("stats").textContent = `${S.fw}×${S.fh} · ${fps.toFixed(0)} fps · ${kbps >= 1000 ? (kbps/1000).toFixed(1) + " Mbps" : kbps.toFixed(0) + " kbps"}${q}`;
+  S.frames = 0; S.bytes = 0; S.lastStats = now;
+}
+
+function resetHome() {
+  releaseAll();
+  ws = null;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  $("viewer").classList.add("hidden"); $("home").classList.remove("hidden");
+  $("go").disabled = false; $("go").textContent = "Connect";
+  document.title = "Veyndesk"; renderRecent();
+  if (S) S.connected = false;
+}
+
+function layout() {
+  if (!S || !S.fw) return;
+  const st = $("stage");
+  let scale = 1;
+  if (st.classList.contains("fit")) scale = Math.min(st.clientWidth / S.fw, st.clientHeight / S.fh);
+  canvas.style.width = Math.floor(S.fw * scale) + "px";
+  canvas.style.height = Math.floor(S.fh * scale) + "px";
+}
+window.addEventListener("resize", layout);
+document.addEventListener("fullscreenchange", () => setTimeout(layout, 50));
+
+// ---------------------------------------------------------------- input
+function toFrame(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  return { x: Math.round((clientX - r.left) * S.fw / r.width), y: Math.round((clientY - r.top) * S.fh / r.height) };
+}
+let moveQueued = null;
+function queueMove(cx, cy) {
+  const first = moveQueued === null;
+  moveQueued = toFrame(cx, cy);
+  if (first) requestAnimationFrame(() => { send({ t: "mouse_move", ...moveQueued }); moveQueued = null; });
+}
+canvas.addEventListener("mousemove", (e) => { if (S && S.connected && S.fw) queueMove(e.clientX, e.clientY); });
+canvas.addEventListener("mousedown", (e) => {
+  if (!S || !S.connected) return; e.preventDefault(); canvas.focus();
+  send({ t: "mouse_move", ...toFrame(e.clientX, e.clientY) });
+  send({ t: "mouse_button", button: e.button, down: true });
+});
+window.addEventListener("mouseup", (e) => { if (S && S.connected) send({ t: "mouse_button", button: e.button, down: false }); });
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+let wheelAcc = { x: 0, y: 0 };
+canvas.addEventListener("wheel", (e) => {
+  if (!S || !S.connected) return; e.preventDefault();
+  const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
+  wheelAcc.x += e.deltaX * unit; wheelAcc.y += e.deltaY * unit;
+  const dx = Math.trunc(wheelAcc.x / 100), dy = Math.trunc(wheelAcc.y / 100);
+  if (dx || dy) { send({ t: "wheel", dx, dy }); wheelAcc.x -= dx * 100; wheelAcc.y -= dy * 100; }
+}, { passive: false });
+
+// Touch: tap = click, drag = move with button held, two-finger drag = scroll.
+let touchY = null;
+canvas.addEventListener("touchstart", (e) => {
+  if (!S || !S.connected) return; e.preventDefault();
+  if (e.touches.length === 2) { touchY = e.touches[0].clientY; return; }
+  const t = e.touches[0]; send({ t: "mouse_move", ...toFrame(t.clientX, t.clientY) });
+  send({ t: "mouse_button", button: 0, down: true });
+}, { passive: false });
+canvas.addEventListener("touchmove", (e) => {
+  if (!S || !S.connected) return; e.preventDefault();
+  if (e.touches.length === 2 && touchY !== null) {
+    const dy = Math.trunc((touchY - e.touches[0].clientY) / 30);
+    if (dy) { send({ t: "wheel", dx: 0, dy }); touchY = e.touches[0].clientY; }
+    return;
+  }
+  const t = e.touches[0]; queueMove(t.clientX, t.clientY);
+}, { passive: false });
+canvas.addEventListener("touchend", (e) => {
+  if (!S || !S.connected) return; e.preventDefault();
+  if (touchY !== null) { touchY = null; return; }
+  send({ t: "mouse_button", button: 0, down: false });
+}, { passive: false });
+
+function keyHandler(down) {
+  return (e) => {
+    if (!S || !S.connected || $("clipDlg").open) return;
+    if (document.activeElement && document.activeElement.tagName === "SELECT") return;
+    e.preventDefault();
+    if (!e.code) return;
+    if (down) S.held.add(e.code); else S.held.delete(e.code);
+    send({ t: "key", code: e.code, key: e.key, down });
+  };
+}
+window.addEventListener("keydown", keyHandler(true));
+window.addEventListener("keyup", keyHandler(false));
+function releaseAll() {
+  if (!S) return;
+  for (const code of S.held) send({ t: "key", code, key: "", down: false });
+  S.held.clear();
+}
+window.addEventListener("blur", releaseAll);
+
+// ---------------------------------------------------------------- toolbar
+$("bClose").onclick = () => { if (ws) ws.close(); };
+$("bRefresh").onclick = () => { send({ t: "refresh" }); canvas.focus(); };
+$("bFit").onclick = () => {
+  const fit = $("stage").classList.toggle("fit"); store.set("velodesk.fit", fit); layout(); canvas.focus();
+};
+$("bFull").onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $("viewer").requestFullscreen().then(() => {
+    // Capture Esc / Win etc. where supported (Chromium).
+    if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().catch(() => {});
+  }).catch(() => {});
+  canvas.focus();
+};
+$("bKeys").onchange = (e) => { if (e.target.value) send({ t: "special_key", name: e.target.value }); e.target.value = ""; canvas.focus(); };
+$("bMon").onchange = (e) => { send({ t: "select_monitor", index: Number(e.target.value) }); canvas.focus(); };
+$("bClip").onclick = async () => {
+  try { if (navigator.clipboard) { const t = await navigator.clipboard.readText(); if (t) $("clipText").value = t; } } catch {}
+  $("clipDlg").showModal();
+};
+$("clipSend").onclick = () => { send({ t: "clipboard", text: $("clipText").value }); toast("Remote clipboard set"); $("clipDlg").close(); canvas.focus(); };
+$("clipType").onclick = () => { send({ t: "text", text: $("clipText").value }); $("clipDlg").close(); canvas.focus(); };
+$("clipCopy").onclick = () => {
+  navigator.clipboard?.writeText($("clipText").value).then(() => toast("Copied"), () => { $("clipText").select(); document.execCommand("copy"); toast("Copied"); });
+};
+$("clipClose").onclick = () => { $("clipDlg").close(); canvas.focus(); };
+if (!EMBED) window.addEventListener("beforeunload", (e) => { if (S && S.connected) { e.preventDefault(); } });
+if (EMBED) document.querySelector(".foot a").classList.add("hidden");
+</script>
+</body>
+</html>

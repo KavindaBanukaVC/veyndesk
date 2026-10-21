@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veyndesk Admin</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --panel2:#1f2630; --border:#2d3540; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3b82f6; --ok:#22c55e; --bad:#ef4444; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg,#3b82f6,#8b5cf6); display: grid; place-items: center; font-weight: 800; }
+  nav { display: flex; gap: 6px; margin-left: 12px; }
+  nav button, .tb { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  nav button.on { border-color: var(--accent); background: #172554; }
+  .tb.danger { background: #3a1518; border-color: #5c1f24; }
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .kpi b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: 12px; }
+  input[type=search], input[type=password], input.note { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font: inherit; }
+  .wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; background: #4b5563; }
+  .dot.on { background: var(--ok); box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+  .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .muted { color: var(--muted); }
+  a { color: #93c5fd; }
+  #login { max-width: 380px; margin: 80px auto; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  #login input { width: 100%; margin: 12px 0; }
+  .ev-auth_failed, .ev-session_kicked { color: var(--bad); }
+  .ev-session_start { color: var(--ok); }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">V</div><h1>Veyndesk Admin</h1>
+  <nav id="tabs" class="hidden">
+    <button data-tab="devices" class="on">Devices</button>
+    <button data-tab="sessions">Sessions</button>
+    <button data-tab="audit">Audit log</button>
+  </nav>
+  <span style="margin-left:auto" class="muted" id="updated"></span>
+  <button class="tb hidden" id="logout">Sign out</button>
+</header>
+
+<div id="login">
+  <strong>Admin token</strong>
+  <p class="muted">Printed by the server on startup, or stored in <code>data/admin_token</code>.</p>
+  <input type="password" id="token" placeholder="Paste admin token">
+  <button class="tb" id="signin">Sign in</button>
+  <p id="lerr" style="color:var(--bad)"></p>
+</div>
+
+<main id="app" class="hidden">
+  <div class="kpis">
+    <div class="kpi"><b id="kOnline">0</b><span>Devices online</span></div>
+    <div class="kpi"><b id="kTotal">0</b><span>Devices known</span></div>
+    <div class="kpi"><b id="kSessions">0</b><span>Active sessions</span></div>
+    <div class="kpi"><b id="kFailed">0</b><span>Failed logins (24h)</span></div>
+  </div>
+
+  <section data-panel="devices">
+    <div class="toolbar"><input type="search" id="q" placeholder="Search ID, name, note…"></div>
+    <div class="wrap"><table>
+      <thead><tr><th></th><th>ID</th><th>Name</th><th>OS</th><th>Last seen</th><th>IP</th><th>Note</th><th></th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table></div>
+  </section>
+
+  <section data-panel="sessions" class="hidden">
+    <div class="wrap"><table>
+      <thead><tr><th>Session</th><th>Device</th><th>Viewer IP</th><th>State</th><th>Started</th><th></th></tr></thead>
+      <tbody id="sessions"></tbody>
+    </table></div>
+  </section>
+
+  <section data-panel="audit" class="hidden">
+    <div class="wrap"><table>
+      <thead><tr><th>Time</th><th>Event</th><th>Device</th><th>Session</th><th>IP</th><th>Detail</th></tr></thead>
+      <tbody id="audit"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtId = (id) => id.replace(/(\d{3})(?=\d)/g, "$1 ");
+const ago = (ts) => {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "now"; if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " h ago"; return Math.floor(s / 86400) + " d ago";
+};
+const time = (ts) => new Date(ts * 1000).toLocaleString();
+let token = ""; try { token = sessionStorage.getItem("vd.token") || ""; } catch {}
+let tab = "devices", hosts = [];
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { ...(opts.headers || {}), Authorization: "Bearer " + token, "Content-Type": "application/json" } });
+  if (r.status === 401) { signOut(); throw new Error("unauthorized"); }
+  if (!r.ok) throw new Error(r.statusText);
+  return r.status === 204 ? null : r.json();
+}
+
+function signOut() {
+  token = ""; try { sessionStorage.removeItem("vd.token"); } catch {}
+  $("app").classList.add("hidden"); $("tabs").classList.add("hidden"); $("logout").classList.add("hidden");
+  $("login").classList.remove("hidden");
+}
+async function signIn() {
+  token = $("token").value.trim();
+  try { await api("/api/hosts"); } catch { $("lerr").textContent = "Invalid token"; return; }
+  try { sessionStorage.setItem("vd.token", token); } catch {}
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("tabs").classList.remove("hidden"); $("logout").classList.remove("hidden");
+  refresh();
+}
+$("signin").onclick = signIn;
+$("token").onkeydown = (e) => { if (e.key === "Enter") signIn(); };
+$("logout").onclick = signOut;
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("[data-panel]").forEach(p => p.classList.toggle("hidden", p.dataset.panel !== tab));
+  refresh();
+});
+
+function renderHosts() {
+  const q = $("q").value.toLowerCase();
+  $("devices").innerHTML = hosts
+    .filter(h => !q || [h.id, h.name, h.note, h.os].join(" ").toLowerCase().includes(q))
+    .map(h => `<tr>
+      <td><span class="dot ${h.online ? "on" : ""}" title="${h.online ? "online" : "offline"}"></span>${h.sessions ? `<span class="muted">${h.sessions}▸</span>` : ""}</td>
+      <td class="mono">${esc(fmtId(h.id))}</td><td>${esc(h.name)}</td><td class="muted">${esc(h.os)} · v${esc(h.version)}</td>
+      <td>${h.online ? "online" : esc(ago(h.last_seen))}</td><td class="mono muted">${esc(h.last_ip)}</td>
+      <td><input class="note" data-id="${esc(h.id)}" value="${esc(h.note)}" placeholder="Add note…"></td>
+      <td>${h.online ? `<a href="/?id=${encodeURIComponent(h.id)}" target="_blank">Connect</a>` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="8" class="muted">No devices yet. Run the host agent with --server pointing here.</td></tr>`;
+  document.querySelectorAll("input.note").forEach(i => i.onchange = () =>
+    api(`/api/hosts/${encodeURIComponent(i.dataset.id)}/note`, { method: "POST", body: JSON.stringify({ note: i.value }) }));
+}
+$("q").oninput = renderHosts;
+
+async function refresh() {
+  if (!token) return;
+  if (document.activeElement && document.activeElement.classList.contains("note")) return; // don't clobber edits
+  try {
+    const [h, s, a] = await Promise.all([api("/api/hosts"), api("/api/sessions"), api("/api/audit?limit=500")]);
+    hosts = h; renderHosts();
+    $("kOnline").textContent = h.filter(x => x.online).length; $("kTotal").textContent = h.length;
+    const active = s.filter(x => x.active); $("kSessions").textContent = active.length;
+    $("kFailed").textContent = a.filter(x => x.event === "auth_failed" && x.ts > Date.now() / 1000 - 86400).length;
+    $("sessions").innerHTML = s.map(x => `<tr><td class="mono">#${x.sid}</td><td class="mono">${esc(fmtId(x.host_id))}</td>
+      <td class="mono">${esc(x.viewer_ip)}</td><td>${x.active ? "active" : "authenticating"}</td><td>${esc(time(x.started))}</td>
+      <td><button class="tb danger" data-kick="${x.sid}">Disconnect</button></td></tr>`).join("")
+      || `<tr><td colspan="6" class="muted">No sessions right now.</td></tr>`;
+    document.querySelectorAll("[data-kick]").forEach(b => b.onclick = async () => { await api(`/api/sessions/${b.dataset.kick}/kick`, { method: "POST" }); refresh(); });
+    $("audit").innerHTML = a.map(x => `<tr><td>${esc(time(x.ts))}</td><td class="ev-${esc(x.event)}">${esc(x.event.replace(/_/g, " "))}</td>
+      <td class="mono">${esc(x.host_id ? fmtId(x.host_id) : "")}</td><td class="mono">${x.sid ?? ""}</td><td class="mono muted">${esc(x.ip)}</td>
+      <td class="muted">${esc(x.detail)}</td></tr>`).join("");
+    $("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  } catch (e) { $("updated").textContent = "Update failed"; }
+}
+setInterval(refresh, 5000);
+if (token) { $("token").value = token; signIn(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+[package]
+name = "velodesk-desktop"
+version = "0.4.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "VeloDesk desktop app (host + viewer)"
+
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "net", "time", "macros", "rt-multi-thread"] }
+tracing-subscriber = "0.3"
+velodesk-host = { path = "../../crates/host" }
+velodesk-protocol = { path = "../../crates/protocol" }
+velodesk-server = { path = "../../crates/server" }
+ureq = "2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

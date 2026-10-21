@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veyndesk</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --panel2:#1f2630; --border:#2d3540; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3b82f6; --accent2:#2563eb; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .logo { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,#3b82f6,#8b5cf6); display: grid; place-items: center; font-weight: 800; }
+  header h1 { font-size: 17px; margin: 0; }
+  #status { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; max-width: 50%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  #status.ok .dot { background: var(--ok); }
+  main { flex: 1; padding: 18px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-content: start; overflow: auto; }
+  @media (max-width: 720px) { main { grid-template-columns: 1fr; } }
+  .full { grid-column: 1 / -1; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .big { font-size: 32px; font-weight: 700; letter-spacing: 2px; font-variant-numeric: tabular-nums; user-select: text; }
+  .pw { font-size: 20px; font-family: ui-monospace, Consolas, monospace; letter-spacing: 1px; user-select: text; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { color: var(--muted); font-size: 12px; }
+  input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; outline: none; user-select: text; }
+  input:focus { border-color: var(--accent); }
+  #partner { font-size: 22px; letter-spacing: 2px; padding: 12px 14px; }
+  button { font: inherit; color: var(--text); cursor: pointer; border-radius: 10px; }
+  .btn { background: var(--accent); border: 0; padding: 11px 18px; font-weight: 600; }
+  .btn:hover { background: var(--accent2); }
+  .ghost { background: var(--panel2); border: 1px solid var(--border); padding: 7px 11px; font-size: 13px; }
+  .ghost:hover { border-color: var(--accent); }
+  .danger { background: #3a1518; border-color: #5c1f24; }
+  .ok-btn { background: #15803d; border: 0; padding: 11px 18px; font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px; }
+  #sessions:empty::after { content: "No one is connected."; color: var(--muted); font-size: 13px; }
+  .sess { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .sess:last-child { border-bottom: 0; }
+  .live { background: #14321f; color: #86efac; border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+  #banner { display: none; background: #14321f; border: 1px solid #1f5130; color: #bbf7d0; border-radius: 12px; padding: 10px 14px; }
+  #banner.on { display: flex; align-items: center; gap: 8px; }
+  .err { color: var(--bad); font-size: 13px; min-height: 18px; margin-top: 6px; }
+  .setup { border-color: #1e3a8a; background: #0f1a33; }
+  .lan { background: #10251a; border: 1px solid #1f5130; border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: 13px; user-select: text; }
+  .lan b { font-family: ui-monospace, Consolas, monospace; }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 16px; padding: 22px; width: min(600px, 94vw); max-height: 90vh; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">V</div><h1>Veyndesk</h1>
+  <div id="status"><span class="dot"></span><span id="statusText">Starting…</span></div>
+  <button class="ghost" id="openSettings">Settings</button>
+</header>
+
+<main>
+  <div id="banner" class="full"><span>●</span><span class="grow">Your screen is being shared.</span><button class="ghost danger" id="endAll">Disconnect all</button></div>
+
+  <section class="card full setup hidden" id="setup">
+    <h2>First-time setup</h2>
+    <p style="margin:0 0 10px">Got a <b>team code</b> from the main PC? Enter it here — works on any Wi-Fi or mobile data:</p>
+    <div class="row" style="margin-bottom:14px">
+      <input id="setupCode" type="text" placeholder="Team code, e.g. ABCD-2345" style="max-width:240px;text-transform:uppercase;letter-spacing:2px">
+      <button class="btn" id="setupJoin">Join</button>
+    </div>
+    <p style="margin:0 0 10px" class="muted">First PC of your team? Make it the server, then turn on <b>Anywhere access</b> to get a team code.</p>
+    <div id="found" class="lan hidden" style="margin:0 0 12px"></div>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="btn" id="setupLan">Make this PC the server (office / home network)</button>
+      <span class="muted">or</span>
+      <input id="setupServer" type="text" class="grow" placeholder="Server address, e.g. https://desk.example.com or 192.168.1.10:21118" style="min-width:240px">
+      <button class="ghost" id="setupSave">Use this server</button>
+    </div>
+    <div class="err" id="setupErr"></div>
+  </section>
+
+  <section class="card">
+    <h2>This desk</h2>
+    <div class="muted">Your address (ID)</div>
+    <div class="row"><div class="big grow" id="myId">— — —</div><button class="ghost" id="copyId">Copy</button></div>
+    <div class="muted" style="margin-top:12px">Password</div>
+    <div class="row"><div class="pw grow" id="myPw">••••••••</div><button class="ghost" id="newPw" title="Generate a new password">New</button><button class="ghost" id="copyPw">Copy</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Remote desk</h2>
+    <form id="connectForm">
+      <input id="partner" type="text" placeholder="Partner ID" autocomplete="off">
+      <button class="btn" type="submit" id="connectBtn" style="width:100%;margin-top:10px">Connect</button>
+    </form>
+    <div class="muted" style="margin-top:8px">Works on any Wi-Fi or mobile data — just your partner's ID and password.</div>
+    <div class="err" id="connErr"></div>
+    <div class="muted" id="recentLabel" style="margin-top:6px"></div>
+    <div class="row" id="recent" style="flex-wrap:wrap"></div>
+  </section>
+
+
+  <section class="card full">
+    <h2>Sessions</h2>
+    <div id="sessions"></div>
+  </section>
+</main>
+
+<dialog id="approve">
+  <h2 style="margin:0 0 6px;font-size:18px">Incoming connection</h2>
+  <p id="approveText" style="margin:0 0 6px"></p>
+  <p class="muted" style="margin:0 0 18px">They entered the correct password. Allow them to see and control this computer?</p>
+  <div class="row"><button class="ghost danger grow" id="deny">Deny</button><button class="ok-btn grow" id="accept">Accept</button></div>
+</dialog>
+
+<dialog id="settings">
+  <div class="row"><h2 style="margin:0;font-size:18px" class="grow">Settings</h2><button class="ghost" id="closeSettings">Close</button></div>
+  <label for="server">Server</label>
+  <input id="server" type="text" placeholder="https://desk.example.com">
+  <label for="name">Computer name</label>
+  <input id="name" type="text">
+  <div class="row" style="margin-top:10px"><button class="ghost" id="saveServer">Save &amp; reconnect</button></div>
+  <label class="check"><input type="checkbox" id="runServer"> Run a Veyndesk server on this PC (port 21118)</label>
+  <label class="check"><input type="checkbox" id="askAccept"> Ask me to accept incoming connections</label>
+  <label for="perm">Unattended access password</label>
+  <div class="row"><input id="perm" type="password" placeholder="At least 8 characters" class="grow">
+    <button class="ghost" id="setPerm">Set</button><button class="ghost" id="clearPerm">Remove</button></div>
+  <div class="muted" id="permState" style="margin-top:6px"></div>
+  <div class="err" id="setErr"></div>
+  <details style="margin-top:16px">
+    <summary class="muted" style="cursor:pointer">Advanced: team server, LAN, internet relay</summary>
+    <div class="muted" style="margin-top:12px">This PC's IP (for direct connect on the same network): <b id="myIp" style="user-select:text"></b></div>
+    <div class="lan hidden" id="lanInfo"></div>
+  <section class="card" id="anywhere">
+    <h2>Team server over the internet (optional)</h2>
+    <div id="netServer" class="hidden">
+      <div class="row"><span class="grow" id="netText">Let PCs on other networks connect to this PC's server (free, via Cloudflare). This PC must stay on.</span>
+        <button class="btn" id="netOn">Turn on</button><button class="ghost hidden" id="netOff">Turn off</button></div>
+      <div id="netCode" class="lan hidden"></div>
+    </div>
+    <div id="netClient" class="hidden">
+      <div class="row"><input id="joinCode" type="text" placeholder="Team code, e.g. ABCD-2345" class="grow" style="text-transform:uppercase;letter-spacing:2px">
+        <button class="btn" id="joinBtn">Join team</button></div>
+      <div class="muted" id="joinState" style="margin-top:8px"></div>
+    </div>
+    <div class="err" id="netErr"></div>
+  </section>
+  </details>
+  <div class="muted" id="ver"></div>
+</dialog>
+
+<script>
+"use strict";
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
+const $ = (id) => document.getElementById(id);
+const fmtId = (id) => (id || "").replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
+const sessions = new Map();
+function renderNet(i) {
+  $("anywhere").classList.toggle("hidden", !i.server);
+  $("netServer").classList.toggle("hidden", !i.run_server);
+  $("netClient").classList.toggle("hidden", i.run_server || !i.server);
+  const st = i.internet_state;
+  $("netOn").classList.toggle("hidden", i.internet);
+  $("netOff").classList.toggle("hidden", !i.internet);
+  const box = $("netCode");
+  if (!i.internet) { box.classList.add("hidden"); $("netText").textContent = "Let PCs on other networks connect to this PC's server (free, via Cloudflare). This PC must stay on."; }
+  else {
+    box.classList.remove("hidden");
+    if (st.state === "downloading") box.textContent = "First-time setup: downloading the Cloudflare connector (about 60 MB)…";
+    else if (st.state === "starting") box.textContent = "Connecting to the internet…";
+    else if (st.state === "online") box.innerHTML = `<div style="font-size:13px">Online ✓ On other PCs, enter this <b>team code</b> (once):</div>
+      <div class="row" style="margin-top:6px"><span class="big grow" style="font-size:28px">${i.team_code}</span><button class="ghost" id="copyCode">Copy</button></div>
+      <div class="muted">Address: ${st.url}</div>`;
+    else if (st.state === "failed") box.textContent = "Problem: " + st.error + " — retrying automatically…";
+    else box.textContent = "Starting…";
+    const cc = document.getElementById("copyCode"); if (cc) cc.onclick = () => navigator.clipboard.writeText(i.team_code);
+  }
+  if (i.team_code && !i.run_server) $("joinState").textContent = `Joined team ${i.team_code} — server ${i.server}`;
+}
+async function joinTeam(code, errEl) {
+  errEl.textContent = "Looking up team code…";
+  try { await invoke("join_team", { code }); errEl.textContent = ""; load(); }
+  catch (e) { errEl.textContent = e; }
+}
+let scanned = false;
+async function scanLan() {
+  scanned = true;
+  $("found").classList.remove("hidden"); $("found").textContent = "Searching your network for a Veyndesk server…";
+  const list = await invoke("discover_servers");
+  if (!list.length) { $("found").textContent = "No Veyndesk server found on this network yet. Make this PC the server, or enter an address."; return; }
+  if (list.length === 1) {
+    await invoke("set_server", { server: list[0].server, name: "" });
+    $("found").textContent = `Found and using the server on ${list[0].name} (${list[0].server}).`;
+    load(); return;
+  }
+  $("found").innerHTML = "Servers found on your network: ";
+  for (const a of list) {
+    const b = document.createElement("button"); b.className = "ghost"; b.style.margin = "4px";
+    b.textContent = `${a.name} — ${a.server}`;
+    b.onclick = async () => { await invoke("set_server", { server: a.server, name: "" }); load(); };
+    $("found").appendChild(b);
+  }
+}
+const approvals = [];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+async function load() {
+  const i = await invoke("get_info");
+  if (i.id) $("myId").textContent = fmtId(i.id);
+  $("myPw").textContent = i.password;
+  if (document.activeElement !== $("server")) $("server").value = i.server;
+  if (document.activeElement !== $("name")) $("name").value = i.name;
+  $("runServer").checked = i.run_server;
+  $("askAccept").checked = i.ask_to_accept;
+  $("permState").textContent = i.permanent ? "Unattended password is set (no prompt for it)." : "No unattended password.";
+  $("ver").textContent = "Version " + i.version;
+  $("myIp").textContent = i.lan_ip;
+  $("setup").classList.toggle("hidden", !!i.server);
+  renderNet(i);
+  if (!i.server && !scanned) scanLan();
+  const s = i.server_state;
+  if (s.state === "running") {
+    $("lanInfo").innerHTML = `This PC is the server. On other computers, set server to <b>${s.lan_url}</b> (or open it in a browser to control a PC without installing).`;
+    $("lanInfo").classList.remove("hidden");
+  } else if (s.state === "failed") {
+    $("lanInfo").textContent = "Server could not start: " + s.error; $("lanInfo").classList.remove("hidden");
+  } else $("lanInfo").classList.add("hidden");
+  setStatus(i.status);
+}
+function setStatus(text) {
+  $("statusText").textContent = text; $("status").title = text;
+  $("status").classList.toggle("ok", text === "Ready");
+}
+function renderSessions() {
+  $("sessions").innerHTML = "";
+  for (const [sid, s] of sessions) {
+    const d = document.createElement("div"); d.className = "sess";
+    d.innerHTML = `<span class="live">LIVE</span><span class="grow"></span>`;
+    d.querySelector(".grow").textContent = `#${sid} from ${s.ip}`;
+    $("sessions").appendChild(d);
+  }
+  $("banner").classList.toggle("on", sessions.size > 0);
+}
+function renderRecent() {
+  const list = store.get("vd.recent", []);
+  $("recent").innerHTML = ""; $("recentLabel").textContent = list.length ? "Recent" : "";
+  for (const id of list) {
+    const b = document.createElement("button"); b.className = "ghost"; b.textContent = id.includes(".") ? id : fmtId(id);
+    b.onclick = () => connectTo(id); $("recent").appendChild(b);
+  }
+}
+function nextApproval() {
+  if ($("approve").open || !approvals.length) return;
+  const a = approvals[0];
+  $("approveText").textContent = `Someone at ${a.ip} wants to connect.`;
+  $("approve").showModal();
+}
+function answer(accept) {
+  const a = approvals.shift(); $("approve").close();
+  if (a) invoke("respond", { sid: a.sid, accept });
+  nextApproval();
+}
+$("accept").onclick = () => answer(true);
+$("deny").onclick = () => answer(false);
+$("approve").addEventListener("cancel", (e) => { e.preventDefault(); answer(false); });
+
+listen("host-event", ({ payload: e }) => {
+  switch (e.type) {
+    case "registered": $("myId").textContent = fmtId(e.id); setStatus("Ready"); break;
+    case "connecting": setStatus("Connecting…"); break;
+    case "disconnected": setStatus("Offline: " + e.reason); sessions.clear(); renderSessions(); break;
+    case "approval_request": approvals.push(e); nextApproval(); break;
+    case "session_started": sessions.set(e.sid, { ip: e.ip }); renderSessions(); break;
+    case "session_ended": {
+      sessions.delete(e.sid); renderSessions();
+      const idx = approvals.findIndex(a => a.sid === e.sid);
+      if (idx === 0 && $("approve").open) { approvals.shift(); $("approve").close(); nextApproval(); }
+      else if (idx > 0) approvals.splice(idx, 1);
+      break;
+    }
+    case "auth_failed": setStatus(`Wrong password attempt from ${e.ip}`); setTimeout(load, 4000); break;
+    case "error": setStatus(e.message); break;
+  }
+});
+
+async function connectTo(id) {
+  $("connErr").textContent = ""; $("connectBtn").disabled = true; $("connectBtn").textContent = "Finding partner…";
+  try {
+    await invoke("open_viewer", { id });
+    const clean = id.includes(".") ? id.trim() : id.replace(/\D/g, "");
+    store.set("vd.recent", [clean, ...store.get("vd.recent", []).filter(x => x !== clean)].slice(0, 5));
+    renderRecent();
+  } catch (err) { $("connErr").textContent = err; }
+  $("connectBtn").disabled = false; $("connectBtn").textContent = "Connect";
+}
+$("connectForm").onsubmit = (e) => { e.preventDefault(); connectTo($("partner").value); };
+$("partner").oninput = (e) => { if (!/[.:]/.test(e.target.value) && !/[a-z]/i.test(e.target.value)) e.target.value = fmtId(e.target.value); };
+$("copyId").onclick = () => navigator.clipboard.writeText($("myId").textContent.replace(/\s/g, ""));
+$("copyPw").onclick = () => navigator.clipboard.writeText($("myPw").textContent);
+$("newPw").onclick = async () => { $("myPw").textContent = await invoke("new_password"); };
+$("endAll").onclick = () => invoke("disconnect_all");
+
+$("setupJoin").onclick = () => joinTeam($("setupCode").value, $("setupErr"));
+$("joinBtn").onclick = () => joinTeam($("joinCode").value, $("netErr"));
+$("netOn").onclick = async () => {
+  $("netErr").textContent = "";
+  try { await invoke("enable_internet", { enable: true }); } catch (e) { $("netErr").textContent = e; }
+  load();
+};
+$("netOff").onclick = async () => { await invoke("enable_internet", { enable: false }); load(); };
+$("setupLan").onclick = async () => {
+  $("setupErr").textContent = "";
+  const s = await invoke("enable_lan_server", { enable: true });
+  if (s.state === "failed") $("setupErr").textContent = s.error;
+  load();
+};
+$("setupSave").onclick = async () => {
+  const v = $("setupServer").value.trim();
+  if (!v) { $("setupErr").textContent = "Enter a server address."; return; }
+  await invoke("set_server", { server: v, name: "" }); load();
+};
+
+$("openSettings").onclick = () => { load(); $("settings").showModal(); };
+$("closeSettings").onclick = () => $("settings").close();
+$("saveServer").onclick = async () => {
+  $("setErr").textContent = "";
+  try { await invoke("set_server", { server: $("server").value, name: $("name").value }); setStatus("Connecting…"); load(); }
+  catch (err) { $("setErr").textContent = err; }
+};
+$("runServer").onchange = async (e) => {
+  $("setErr").textContent = "";
+  const s = await invoke("enable_lan_server", { enable: e.target.checked });
+  if (!e.target.checked) $("setErr").textContent = "The server stops when you restart Veyndesk.";
+  else if (s.state === "failed") $("setErr").textContent = s.error;
+  load();
+};
+$("askAccept").onchange = (e) => invoke("set_options", { askToAccept: e.target.checked });
+$("setPerm").onclick = async () => {
+  $("setErr").textContent = "";
+  try { await invoke("set_permanent_password", { password: $("perm").value }); $("perm").value = ""; load(); }
+  catch (err) { $("setErr").textContent = err; }
+};
+$("clearPerm").onclick = async () => { await invoke("set_permanent_password", { password: null }); load(); };
+
+renderRecent(); load(); setInterval(load, 5000);
+</script>
+</body>
+</html>

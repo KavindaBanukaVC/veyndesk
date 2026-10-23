@@ -30,13 +30,47 @@ jobs:
       - name: Build Veyndesk app + installer
         working-directory: desktop
         run: npx --yes @tauri-apps/cli@2 build --bundles nsis
+      - name: Collect files to sign
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory unsigned | Out-Null
+          Copy-Item desktop/src-tauri/target/release/bundle/nsis/*.exe unsigned/
+          Copy-Item desktop/src-tauri/target/release/Veyndesk.exe unsigned/
+
+      # Code signing by SignPath Foundation (https://signpath.org). Runs only after the project is approved and
+      # these are set in the repo settings: variables SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG,
+      # SIGNPATH_SIGNING_POLICY_SLUG and secret SIGNPATH_API_TOKEN. Every request is approved manually in SignPath.
+      - name: Upload files to sign
+        id: unsigned
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: veyndesk-windows-unsigned
+          path: unsigned/*
+      - name: Sign with SignPath
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+      - name: Use signed files
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        shell: pwsh
+        run: Copy-Item signed/* unsigned/ -Force
+
       - name: Collect files
         shell: pwsh
         run: |
           New-Item -ItemType Directory dist | Out-Null
-          Copy-Item desktop/src-tauri/target/release/bundle/nsis/*.exe dist/
+          Copy-Item unsigned/*-setup.exe dist/
           New-Item -ItemType Directory portable | Out-Null
-          Copy-Item desktop/src-tauri/target/release/Veyndesk.exe portable/
+          Copy-Item unsigned/Veyndesk.exe portable/
           Copy-Item target/release/veyndesk-server.exe portable/
           Compress-Archive -Path portable/* -DestinationPath dist/Veyndesk-windows-portable.zip
       - uses: actions/upload-artifact@v4

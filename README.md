@@ -15,8 +15,9 @@ Get the latest version from **[Releases](../../releases/latest)** · Website and
 | **Linux** (Ubuntu, Debian, Mint…) | `veyndesk_x.y.z_amd64.deb` |
 | **Linux** (any distribution) | `Veyndesk_x.y.z_amd64.AppImage` |
 
-**macOS first run:** the app isn't notarized yet, so right-click Veyndesk → **Open** → **Open**. Then allow it in
-System Settings → Privacy & Security → **Screen Recording** and **Accessibility**, so others can see and control your Mac.
+**macOS first run:** the app isn't notarized by Apple yet, so macOS says *"Veyndesk" Not Opened*. Click **Done**, then
+System Settings → Privacy & Security → scroll down → **Open Anyway** → enter your password → **Open** (only once).
+Then allow Veyndesk under **Screen Recording** and **Accessibility** in the same place, so others can see and control your Mac.
 
 **Linux:** works on X11 sessions (on Ubuntu, choose "Ubuntu on Xorg" at the login screen). Wayland support is planned.
 
